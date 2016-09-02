@@ -1,6 +1,6 @@
 ## -*- docker-image-name: "marchelbling/photogrammetry" -*-
 FROM ubuntu:16.04
-ARG threads=4
+ARG threads=3
 
 MAINTAINER marc@helbling.fr
 
@@ -17,22 +17,22 @@ RUN \
     cmake \
     g++ \
     git \
+    mercurial \
     python \
     wget \
     curl \
  && mkdir -p /opt/photogrammetry/ \
  && echo "/usr/local/lib64/" > /etc/ld.so.conf.d/lib64.conf \
- && echo "/usr/local/lib/" > /etc/ld.so.conf.d/lib.conf
+ && echo "/usr/local/lib/" > /etc/ld.so.conf.d/lib.conf \
 
 # openMVS
-RUN apt-get install -y \
+ && apt-get install -y \
     subversion \
     cmake \
     libpng-dev \
     libjpeg-dev \
     libtiff-dev \
     libglu1-mesa-dev \
-    libeigen3-dev \
     libboost-iostreams-dev \
     libboost-program-options-dev \
     libboost-system-dev \
@@ -41,12 +41,23 @@ RUN apt-get install -y \
     # opencv
     libopencv-dev \
 
-    # cgal
+    # cgal (gmp + mpfr for cgal compilation if package not ready)
+    libgmp-dev \
+    libmpfr-dev \
+    libcgal-qt5-dev \
     libcgal-dev \
 
     # ceres solver
     libatlas-base-dev \
     libsuitesparse-dev \
+
+    # openMVS: eigen
+ && hg clone --updaterev 3.2.7 https://bitbucket.org/eigen/eigen /opt/photogrammetry/eigen \
+    && mkdir -p /opt/photogrammetry/eigen/build \
+    && cd /opt/photogrammetry/eigen/build \
+    && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+    && make install \
+    && cd /opt/photogrammetry && rm -fr /opt/photogrammetry/eigen \
 
     # fetch vcglib
  && git clone --branch master --depth 1 --recursive https://github.com/cnr-isti-vclab/vcglib.git /opt/photogrammetry/vcglib \
@@ -56,16 +67,7 @@ RUN apt-get install -y \
     && mkdir -p /opt/photogrammetry/ceres-solver/release && cd /opt/photogrammetry/ceres-solver/release \
     && cmake -DMINIGLOG=ON -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF ../ \
     && make -j${threads} install \
-    && rm -fr /opt/photogrammetry/ceres-solver \
-
-    # build openMVS
- && git clone --branch master --depth 1 --recursive https://github.com/cdcseacave/openMVS /opt/photogrammetry/openMVS \
-    && mkdir -p /opt/photogrammetry/openMVS/release \
-    && cd /opt/photogrammetry/openMVS/release \
-    && cmake -DCMAKE_BUILD_TYPE=Release -DVCG_ROOT="/opt/photogrammetry/vcglib" .. \
-    && make -j${threads} install \
-    && rm -fr /opt/photogrammetry/openMVS
-
+    && cd /opt/photogrammetry && rm -fr /opt/photogrammetry/ceres-solver
 
 # openMVG:
 RUN apt-get install -y \
@@ -82,4 +84,13 @@ RUN apt-get install -y \
     && cd /opt/photogrammetry/openMVG/release \
     && cmake -DCMAKE_BUILD_TYPE=RELEASE -DOpenMVG_BUILD_DOC=OFF ../src \
     && make -j${threads} \
-    && rm -fr /opt/photogrammetry/openMVG
+    && cd /opt/photogrammetry && rm -fr /opt/photogrammetry/openMVG
+
+
+    # build openMVS
+RUN git clone --branch master --depth 1 --recursive https://github.com/cdcseacave/openMVS /opt/photogrammetry/openMVS \
+    && mkdir -p /opt/photogrammetry/openMVS/release \
+    && cd /opt/photogrammetry/openMVS/release \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DVCG_ROOT="/opt/photogrammetry/vcglib" .. \
+    && make -j${threads} install \
+    && cd /opt/photogrammetry && rm -fr /opt/photogrammetry/openMVS
