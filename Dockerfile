@@ -7,10 +7,10 @@ MAINTAINER marc@helbling.fr
 ENV LD_LIBRARY_PATH /usr/local/lib/:/usr/local/lib64/
 ENV LC_ALL en_US.UTF-8
 
-RUN \
-    locale-gen en_US.UTF-8 \
-
- && apt-get update -y \
+# base setup
+RUN apt-get update \
+ && apt-get install locales \
+ && locale-gen en_US.UTF-8 \
  && apt-get install -y \
     git \
     mercurial \
