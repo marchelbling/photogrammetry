@@ -150,7 +150,7 @@ class Context(object):
             if not os.path.exists(folder):
                 os.makedirs(folder)
 
-    def process(self, source_dir):
+    def process(self, source_dir, pipeline):
         self.copy_source(source_dir)
         self.container_id = get_docker_container(self.uid, volumes={self.folder:self.folder})
         try:
@@ -182,18 +182,26 @@ class Context(object):
 
 
 def reconstruct(options):
-    context = Context()
-    context.process(options['source'])
+    def get_pipeline_index(value):
+        if isinstance(value, basestring):
+            indices = [i for i, step in enumerate(pipeline) if step['label'] == value]
+            return indices[0] if indices else None
+        else:
+            return value
+
+    context = Context(uid=options.uid)
+    first = get_pipeline_index(options.first)
+    last = get_pipeline_index(options.last)
+    context.process(options.source, pipeline[first:last])
 
 
 def parse_options():
     parser = argparse.ArgumentParser(description='Photogrammetry options')
     parser.add_argument('source', type=str, default='', help='Path to folder containing images to use for reconstruction')
-    args = parser.parse_args()
-
-    return {
-        'source': args.source
-    }
+    parser.add_argument('--uid', type=str, default='', help='Build uid')
+    parser.add_argument('--from', dest='first', default=None, help='First pipeline step to execute')
+    parser.add_argument('--to', dest='last', default=None, help='Last pipeline step to execute')
+    return parser.parse_args()
 
 def main():
     options = parse_options()
