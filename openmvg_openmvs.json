@@ -45,19 +45,22 @@
             "tool": "openmvs",
             "command": ["DensifyPointCloud",
                         "--input-file", "{mvs_dir}/scene.mvs"],
-            "on_success": "reconstruct_mesh"
+            "on_success": "reconstruct_mesh",
+            "output": ["{mvs_dir}/scene_dense.ply"]
         },
         "reconstruct_mesh": {
             "tool": "openmvs",
             "command": ["ReconstructMesh",
                         "{mvs_dir}/scene_dense.mvs"],
-            "on_success": "refine_mesh"
+            "on_success": "refine_mesh",
+            "output": ["{mvs_dir}/scene_dense_mesh.ply"]
         },
         "refine_mesh": {
             "tool": "openmvs",
             "command": ["RefineMesh",
                         "{mvs_dir}/scene_dense_mesh.mvs"],
-            "on_success": "texture_mesh"
+            "on_success": "texture_mesh",
+            "output": ["{mvs_dir}/scene_dense_mesh.ply"]
         },
         "texture_mesh": {
             "tool": "openmvs",
