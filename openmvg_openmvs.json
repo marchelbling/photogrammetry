@@ -1,0 +1,69 @@
+{
+    "name": "openmvg+openmvs pipeline",
+    "entrypoint": "analysis",
+    "steps": {
+        "analysis": {
+            "tool": "openmvg",
+            "command": ["openMVG_main_SfMInit_ImageListing",
+                        "-i", "{input_dir}",
+                        "-o", "{matches_dir}",
+                        "-d", "{camera_database}"],
+            "on_success": "features"
+        },
+        "features": {
+            "tool": "openmvg",
+            "command": ["openMVG_main_ComputeFeatures",
+                        "-i", "{matches_dir}/sfm_data.json",
+                        "-o", "{matches_dir}",
+                        "-m", "SIFT"],
+            "on_success": "matches"
+        },
+        "matches": {
+            "tool": "openmvg",
+            "command": ["openMVG_main_ComputeMatches",
+                        "-i", "{matches_dir}/sfm_data.json",
+                        "-o", "{matches_dir}"],
+            "on_success": "incremental_reconstruction"
+        },
+        "incremental_reconstruction": {
+            "tool": "openmvg",
+            "command": ["openMVG_main_IncrementalSfM",
+                        "-i", "{matches_dir}/sfm_data.json",
+                        "-m", "{matches_dir}",
+                        "-o", "{reconstruction_dir}"],
+            "on_success": "export_to_mvs"
+        },
+        "export_to_mvs": {
+            "tool": "openmvg",
+            "command": ["openMVG_main_openMVG2openMVS",
+                        "-i", "{reconstruction_dir}/sfm_data.bin",
+                        "-o", "{mvs_dir}/scene.mvs",
+                        "-d", "{mvs_dir}"],
+            "on_success": "densify_point_cloud"
+        },
+        "densify_point_cloud": {
+            "tool": "openmvs",
+            "command": ["DensifyPointCloud",
+                        "--input-file", "{mvs_dir}/scene.mvs"],
+            "on_success": "reconstruct_mesh"
+        },
+        "reconstruct_mesh": {
+            "tool": "openmvs",
+            "command": ["ReconstructMesh",
+                        "{mvs_dir}/scene_dense.mvs"],
+            "on_success": "refine_mesh"
+        },
+        "refine_mesh": {
+            "tool": "openmvs",
+            "command": ["RefineMesh",
+                        "{mvs_dir}/scene_dense_mesh.mvs"],
+            "on_success": "texture_mesh"
+        },
+        "texture_mesh": {
+            "tool": "openmvs",
+            "command": ["TextureMesh",
+                        "{mvs_dir}/scene_dense_mesh_refine.mvs"],
+            "on_success": null
+        }
+    }
+}
